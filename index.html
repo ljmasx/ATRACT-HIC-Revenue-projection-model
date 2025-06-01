@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revenue Projection Model - ATRACT HIC Analysis</title>
+    <meta name="description" content="Interactive revenue projection model for HIC-ATRACT pricing optimization">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+        }
+        
+        .flow-diagram {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+        }
+        
+        .flow-diagram h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .flow-steps {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .flow-step {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .flow-arrow {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .slider-container {
+            background: linear-gradient(135deg, #ff7675 0%, #fd79a8 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .slider-container h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .price-slider {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.3);
+            outline: none;
+            margin: 20px 0;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        
+        .price-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .price-slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .price-display {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .panel h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+            font-size: 0.9rem;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            background: white;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .metric-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .metric-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        
+        .metric-card .unit {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+        
+        .total-metric {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+        }
+        
+        .total-metric h3,
+        .total-metric .value,
+        .total-metric .unit {
+            color: white;
+        }
+        
+        .chart-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .chart-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .simple-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 100%;
+            border-bottom: 2px solid #ddd;
+            border-left: 2px solid #ddd;
+            padding: 20px 10px 40px 10px;
+            position: relative;
+            background: linear-gradient(90deg, transparent 0%, rgba(52, 152, 219, 0.05) 100%);
+        }
+        
+        .bar {
+            background: linear-gradient(to top, #3498db, #74b9ff);
+            margin: 0 3px;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-width: 35px;
+            box-shadow: 0 2px 10px rgba(52, 152, 219, 0.3);
+        }
+        
+        .bar:hover {
+            background: linear-gradient(to top, #e74c3c, #ff7675);
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
+        }
+        
+        .bar-label {
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .bar-value {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #333;
+            font-weight: 600;
+            background: rgba(255,255,255,0.95);
+            padding: 3px 6px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+
+        .optimal-bar {
+            background: linear-gradient(to top, #00b894, #00cec9) !important;
+            box-shadow: 0 5px 20px rgba(0, 184, 148, 0.5) !important;
+        }
+
+        .current-bar {
+            background: linear-gradient(to top, #e74c3c, #ff7675) !important;
+            box-shadow: 0 5px 20px rgba(231, 76, 60, 0.5) !important;
+        }
+        
+        .chart-legend {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .legend-item {
+            display: inline-block;
+            margin: 0 15px;
+        }
+        
+        .legend-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        
+        .recommendation {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .recommendation h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .key-insight {
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .key-insight strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.05rem;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .price-display {
+                font-size: 2.5rem;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-steps {
+                flex-direction: column;
+            }
+            
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+        
+        /* Loading Animation */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📊 Revenue Projection Model</h1>
+            <p>Impact of HIC→ATRACT pricing on HIC's total profitability</p>
+        </header>
+        
+        <section class="flow-diagram">
+            <h2>📊 Commercial Flow</h2>
+            <div class="flow-steps">
+                <div class="flow-step">
+                    <strong>HIC (Costa Rica)</strong><br>
+                    Manufactures device<br>
+                    Cost: €20/unit
+                </div>
+                <div class="flow-arrow" aria-hidden="true">→</div>
+                <div class="flow-step">
+                    <strong>ATRACT (You)</strong><br>
+                    Purchases from HIC<br>
+                    Price: €<span id="flowPrice">90</span>/unit
+                </div>
+                <div class="flow-arrow" aria-hidden="true">→</div>
+                <div class="flow-step">
+                    <strong>End Customers</strong><br>
+                    Buy through ATRACT<br>
+                    Price: €<span id="consumerPrice">250</span>/unit
+                </div>
+            </div>
+        </section>
+        
+        <section class="slider-container">
+            <h2>💰 HIC → ATRACT Selling Price</h2>
+            <label for="priceSlider" class="sr-only">Adjust HIC to ATRACT selling price</label>
+            <input type="range" id="priceSlider" class="price-slider" min="25" max="150" value="90" step="1" aria-describedby="priceDisplay">
+            <div class="price-display" id="priceDisplay" aria-live="polite">€90</div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.9em;">
+                <span>€25 (Cost + €5)</span>
+                <span>€150 (Maximum)</span>
+            </div>
+        </section>
+        
+        <section class="dashboard">
+            <div class="panel">
+                <h2>📊 Market Parameters</h2>
+                <div class="input-group">
+                    <label for="consumerFinalPrice">End customer price (€)</label>
+                    <input type="number" id="consumerFinalPrice" value="250" min="50" max="1000">
+                </div>
+                <div class="input-group">
+                    <label for="maxMarketSize">Total potential market (units/year)</label>
+                    <input type="number" id="maxMarketSize" value="50000" min="1000" max="1000000">
+                </div>
+                <div class="input-group">
+                    <label for="priceElasticity">Final price elasticity (sensitivity)</label>
+                    <input type="number" id="priceElasticity" value="1.8" min="0.5" max="5" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="competitorFinalPrice">Competitor final price (€)</label>
+                    <input type="number" id="competitorFinalPrice" value="300" min="50" max="1000">
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>💼 ATRACT Parameters</h2>
+                <div class="input-group">
+                    <label for="attractMargin">ATRACT minimum margin (%)</label>
+                    <input type="number" id="attractMargin" value="15" min="5" max="100">
+                </div>
+                <div class="input-group">
+                    <label for="discountStrategy">Discount strategy aggressiveness</label>
+                    <input type="number" id="discountStrategy" value="2.5" min="1" max="5" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="attractFixedCosts">ATRACT fixed costs (k€/year)</label>
+                    <input type="number" id="attractFixedCosts" value="200" min="0" max="10000">
+                </div>
+                <div class="input-group">
+                    <label for="valuationMultiple">Valuation multiple</label>
+                    <input type="number" id="valuationMultiple" value="10" min="1" max="25" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label for="hicShare">HIC share in ATRACT (%)</label>
+                    <input type="number" id="hicShare" value="40" min="1" max="100">
+                </div>
+            </div>
+        </section>
+        
+        <section class="metrics-grid" id="metricsGrid" aria-live="polite">
+            <!-- Metrics will be populated here -->
+        </section>
+        
+        <section class="chart-section">
+            <h3>💰 Total HIC Revenue by B2B Price</h3>
+            <div class="chart-container">
+                <div class="simple-chart" id="revenueChart" role="img" aria-label="Bar chart showing HIC revenue by price point">
+                    <!-- Chart bars will be generated here -->
+                </div>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-color" style="background: linear-gradient(to right, #00b894, #00cec9);"></span>
+                    Optimal Price
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: linear-gradient(to right, #e74c3c, #ff7675);"></span>
+                    Current Price
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: linear-gradient(to right, #3498db, #74b9ff);"></span>
+                    Other Prices
+                </div>
+            </div>
+        </section>
+        
+        <section class="recommendation" id="recommendation" aria-live="polite">
+            <!-- Recommendations will be populated here -->
+        </section>
+    </div>
+
+    <script>
+        // Application state
+        const state = {
+            currentPrice: 90,
+            optimalPrice: 90,
+            isCalculating: false
+        };
+
+        // Utility functions
+        function formatCurrency(value, decimals = 0) {
+            return new Intl.NumberFormat('en-EU', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            }).format(value);
+        }
+
+        function formatNumber(value, decimals = 0) {
+            return new Intl.NumberFormat('en-EU', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            }).format(value);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Core calculation function
+        function calculateMetrics(hicPrice) {
+            try {
+                const consumerFinalPrice = parseFloat(document.getElementById('consumerFinalPrice').value) || 250;
+                const maxMarketSize = parseInt(document.getElementById('maxMarketSize').value) || 50000;
+                const priceElasticity = parseFloat(document.getElementById('priceElasticity').value) || 1.8;
+                const competitorFinalPrice = parseFloat(document.getElementById('competitorFinalPrice').value) || 300;
+                const attractMinMargin = (parseFloat(document.getElementById('attractMargin').value) || 15) / 100;
+                const discountStrategy = parseFloat(document.getElementById('discountStrategy').value) || 2.5;
+                const attractFixedCosts = (parseFloat(document.getElementById('attractFixedCosts').value) || 200) * 1000;
+                const valuationMultiple = parseFloat(document.getElementById('valuationMultiple').value) || 10;
+                const hicShare = (parseFloat(document.getElementById('hicShare').value) || 40) / 100;
+                
+                // Validate inputs
+                if (hicPrice < 20 || hicPrice > 500) throw new Error('Invalid HIC price');
+                if (consumerFinalPrice < hicPrice) throw new Error('Consumer price too low');
+                
+                // ATRACT pricing strategy
+                const attractCostPrice = hicPrice;
+                const minSellingPrice = attractCostPrice / (1 - attractMinMargin);
+                
+                // Discount calculation
+                const costSavingsVsReference = Math.max(0, 90 - hicPrice);
+                const maxDiscountRate = 0.4;
+                const discountRate = Math.min(maxDiscountRate, (costSavingsVsReference / 70) * (discountStrategy / 2.5));
+                
+                // Strategic pricing
+                const potentialDiscountedPrice = consumerFinalPrice * (1 - discountRate);
+                const strategicPrice = Math.max(minSellingPrice, potentialDiscountedPrice);
+                
+                // Volume calculation
+                const priceAdvantage = Math.max(-0.8, (competitorFinalPrice - strategicPrice) / competitorFinalPrice);
+                const competitivenessMultiplier = Math.pow(1.2, priceAdvantage * priceElasticity);
+                
+                // Market penetration
+                const marketPenetration = 0.05 + (costSavingsVsReference / 70) * 0.45;
+                const volume = Math.max(100, Math.round(maxMarketSize * marketPenetration * competitivenessMultiplier));
+                
+                // ATRACT financials
+                const attractRevenue = volume * strategicPrice;
+                const attractCogs = volume * attractCostPrice;
+                const attractGrossProfit = attractRevenue - attractCogs;
+                const attractNetProfit = Math.max(0, attractGrossProfit - attractFixedCosts);
+                
+                // Valuation calculation
+                const profitabilityMultiplier = attractNetProfit > 0 ? 1 + (attractNetProfit / (attractRevenue || 1)) : 0.1;
+                const attractValuation = attractNetProfit * valuationMultiple * profitabilityMultiplier;
+                
+                // HIC financials
+                const hicUnitMargin = Math.max(0, hicPrice - 20);
+                const hicProductionRevenue = volume * hicUnitMargin;
+                const hicEquityValue = attractValuation * hicShare;
+                const hicTotalValue = hicProductionRevenue + hicEquityValue;
+                
+                return {
+                    hicPrice,
+                    strategicPrice,
+                    volume,
+                    attractRevenue,
+                    attractNetProfit,
+                    attractValuation,
+                    hicUnitMargin,
+                    hicProductionRevenue,
+                    hicEquityValue,
+                    hicTotalValue,
+                    actualMargin: ((strategicPrice - attractCostPrice) / strategicPrice) * 100,
+                    discountFromBase: consumerFinalPrice - strategicPrice,
+                    marketPenetration: (volume / maxMarketSize) * 100
+                };
+            } catch (error) {
+                console.error('Calculation error:', error);
+                return null;
+            }
+        }
+        
+        // Update display functions
+        function updateMetrics() {
+            if (state.isCalculating) return;
+            state.isCalculating = true;
+            
+            const hicPrice = parseInt(document.getElementById('priceSlider').value);
+            state.currentPrice = hicPrice;
+            
+            // Update price displays
+            document.getElementById('priceDisplay').textContent = formatCurrency(hicPrice);
+            document.getElementById('flowPrice').textContent = hicPrice;
+            document.getElementById('consumerPrice').textContent = document.getElementById('consumerFinalPrice').value;
+            
+            const metrics = calculateMetrics(hicPrice);
+            if (!metrics) {
+                state.isCalculating = false;
+                return;
+            }
+            
+            // Update metrics grid
+            const metricsContainer = document.getElementById('metricsGrid');
+            metricsContainer.innerHTML = `
+                <div class="metric-card">
+                    <h3>B2B Price HIC→ATRACT</h3>
+                    <div class="value">${formatCurrency(metrics.hicPrice)}</div>
+                    <div class="unit">per device</div>
+                </div>
+                <div class="metric-card">
+                    <h3>ATRACT Strategic Price</h3>
+                    <div class="value">${formatCurrency(metrics.strategicPrice)}</div>
+                    <div class="unit">per device</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Discount Applied</h3>
+                    <div class="value">${formatCurrency(metrics.discountFromBase)}</div>
+                    <div class="unit">vs base price</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Annual Volume</h3>
+                    <div class="value">${formatNumber(metrics.volume)}</div>
+                    <div class="unit">units/year</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Market Penetration</h3>
+                    <div class="value">${formatNumber(metrics.marketPenetration, 1)}%</div>
+                    <div class="unit">of total market</div>
+                </div>
+                <div class="metric-card">
+                    <h3>HIC Production Revenue</h3>
+                    <div class="value">${formatCurrency(metrics.hicProductionRevenue / 1000000, 1)}M</div>
+                    <div class="unit">per year</div>
+                </div>
+                <div class="metric-card">
+                    <h3>ATRACT Net Profit</h3>
+                    <div class="value">${formatCurrency(metrics.attractNetProfit / 1000000, 1)}M</div>
+                    <div class="unit">per year</div>
+                </div>
+                <div class="metric-card">
+                    <h3>ATRACT Valuation</h3>
+                    <div class="value">${formatCurrency(metrics.attractValuation / 1000000, 1)}M</div>
+                    <div class="unit">total value</div>
+                </div>
+                <div class="metric-card">
+                    <h3>HIC Equity Share (40%)</h3>
+                    <div class="value">${formatCurrency(metrics.hicEquityValue / 1000000, 1)}M</div>
+                    <div class="unit">equity value</div>
+                </div>
+                <div class="metric-card total-metric">
+                    <h3>TOTAL HIC VALUE</h3>
+                    <div class="value">${formatCurrency(metrics.hicTotalValue / 1000000, 1)}M</div>
+                    <div class="unit">Production + Equity</div>
+                </div>
+            `;
+            
+            updateChart();
+            updateRecommendation(metrics);
+            
+            state.isCalculating = false;
+        }
+        
+        function updateChart() {
+            const pricePoints = [];
+            const totalValues = [];
+            
+            // Calculate data for all price points
+            for (let price = 30; price <= 150; price += 10) {
+                const metrics = calculateMetrics(price);
+                if (metrics) {
+                    pricePoints.push(price);
+                    totalValues.push(metrics.hicTotalValue / 1000000);
+                }
+            }
+
+            if (totalValues.length === 0) return;
+
+            // Find optimal price
+            const maxValueIndex = totalValues.indexOf(Math.max(...totalValues));
+            const optimalPrice = pricePoints[maxValueIndex];
+            state.optimalPrice = optimalPrice;
+
+            // Find max value for scaling
+            const maxValue = Math.max(...totalValues);
+            const minValue = Math.min(...totalValues);
+            const valueRange = maxValue - minValue;
+
+            // Create chart
+            const chartContainer = document.getElementById('revenueChart');
+            chartContainer.innerHTML = '';
+
+            pricePoints.forEach((price, index) => {
+                const value = totalValues[index];
+                const normalizedHeight = valueRange > 0 ? ((value - minValue) / valueRange) : 0.5;
+                const height = Math.max(20, normalizedHeight * 220); // Min 20px, max 220px
+                
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                
+                // Apply styling based on price type
+                if (price === optimalPrice) {
+                    bar.classList.add('optimal-bar');
+                    bar.setAttribute('aria-label', `Optimal price: ${formatCurrency(price)} with revenue ${formatCurrency(value, 1)}M`);
+                } else if (Math.abs(price - state.currentPrice) <= 5) {
+                    bar.classList.add('current-bar');
+                    bar.setAttribute('aria-label', `Current price: ${formatCurrency(price)} with revenue ${formatCurrency(value, 1)}M`);
+                } else {
+                    bar.setAttribute('aria-label', `Price: ${formatCurrency(price)} with revenue ${formatCurrency(value, 1)}M`);
+                }
+                
+                bar.style.height = height + 'px';
+                bar.style.width = '45px';
+                
+                // Add labels
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = formatCurrency(price);
+                
+                const valueLabel = document.createElement('div');
+                valueLabel.className = 'bar-value';
+                valueLabel.textContent = formatCurrency(value, 1) + 'M';
+                
+                // Add click handler for accessibility
+                bar.addEventListener('click', () => {
+                    document.getElementById('priceSlider').value = price;
+                    updateMetrics();
+                });
+                
+                bar.appendChild(label);
+                bar.appendChild(valueLabel);
+                chartContainer.appendChild(bar);
+            });
+        }
+        
+        function updateRecommendation(currentMetrics) {
+            const optimalMetrics = calculateMetrics(state.optimalPrice);
+            if (!optimalMetrics) return;
+            
+            const currentPrice = currentMetrics.hicPrice;
+            const gainPotential = optimalMetrics.hicTotalValue - currentMetrics.hicTotalValue;
+            const gainPercentage = currentMetrics.hicTotalValue > 0 ? (gainPotential / currentMetrics.hicTotalValue) * 100 : 0;
+            
+            document.getElementById('recommendation').innerHTML = `
+                <h2>🎯 Analysis & Negotiation Arguments</h2>
+                <div class="key-insight">
+                    <strong>Optimal B2B Price for HIC: ${formatCurrency(state.optimalPrice)}</strong>
+                    At this price, HIC maximizes total revenue with ${formatCurrency(optimalMetrics.hicTotalValue/1000000, 1)}M
+                </div>
+                <div class="key-insight">
+                    <strong>Impact vs Current Price (${formatCurrency(currentPrice)}):</strong>
+                    ${gainPotential > 0 ? 
+                        `Potential gain of +${formatCurrency(gainPotential/1000000, 1)}M (+${formatNumber(gainPercentage, 1)}%) by reducing B2B price` :
+                        `Current price ${gainPotential < -0.1 ? 'penalizes' : 'is close to optimal for'} HIC`
+                    }
+                </div>
+                <div class="key-insight">
+                    <strong>Strategic Pricing Advantage:</strong>
+                    Lower B2B price → ATRACT can offer strategic discounts → Higher volume through competitive pricing → 
+                    Better market penetration → Higher ATRACT valuation → More valuable HIC equity stake
+                </div>
+                <div class="key-insight">
+                    <strong>Discount Strategy Leverage:</strong>
+                    Each euro saved on B2B price allows ATRACT to be more aggressive with discounts, 
+                    creating exponential volume growth that more than compensates for lower unit margins
+                </div>
+                <div class="key-insight">
+                    <strong>Winning Argument:</strong>
+                    HIC makes more money with a reduced B2B price because the value of its equity stake 
+                    increases faster than its production revenues decrease
+                </div>
+            `;
+        }
+        
+        // Event handlers
+        function initializeEventListeners() {
+            // Price slider
+            const priceSlider = document.getElementById('priceSlider');
+            if (priceSlider) {
+                priceSlider.addEventListener('input', debounce(updateMetrics, 100));
+            }
+            
+            // All number inputs
+            const numberInputs = document.querySelectorAll('input[type="number"]');
+            numberInputs.forEach(input => {
+                input.addEventListener('input', debounce(updateMetrics, 300));
+                input.addEventListener('change', updateMetrics);
+            });
+            
+            // Error handling for invalid inputs
+            numberInputs.forEach(input => {
+                input.addEventListener('blur', function() {
+                    const value = parseFloat(this.value);
+                    const min = parseFloat(this.min) || 0;
+                    const max = parseFloat(this.max) || Infinity;
+                    
+                    if (isNaN(value) || value < min || value > max) {
+                        this.style.borderColor = '#e74c3c';
+                        setTimeout(() => {
+                            this.style.borderColor = '';
+                        }, 2000);
+                    }
+                });
+            });
+        }
+        
+        // Initialize application
+        function initialize() {
+            try {
+                initializeEventListeners();
+                updateMetrics();
+                
+                // Add keyboard navigation for accessibility
+                document.addEventListener('keydown', function(e) {
+                    if (e.target.id === 'priceSlider') {
+                        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            const newValue = Math.max(25, parseInt(e.target.value) - 5);
+                            e.target.value = newValue;
+                            updateMetrics();
+                        } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            const newValue = Math.min(150, parseInt(e.target.value) + 5);
+                            e.target.value = newValue;
+                            updateMetrics();
+                        }
+                    }
+                });
+                
+                console.log('Revenue Projection Model initialized successfully');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                
+                // Fallback display
+                document.getElementById('metricsGrid').innerHTML = `
+                    <div class="metric-card" style="grid-column: 1 / -1; background: #e74c3c; color: white;">
+                        <h3>Initialization Error</h3>
+                        <div class="value">⚠️</div>
+                        <div class="unit">Please refresh the page</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Performance monitoring
+        function logPerformance() {
+            if (typeof performance !== 'undefined' && performance.timing) {
+                const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                console.log(`Page load time: ${loadTime}ms`);
+            }
+        }
+        
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+        
+        // Log performance after page load
+        window.addEventListener('load', logPerformance);
+        
+        // Export for debugging (only in development)
+        if (typeof window !== 'undefined') {
+            window.revenueModel = {
+                calculateMetrics,
+                updateMetrics,
+                state
+            };
+        }
+    </script>
+</body>
+</html>
