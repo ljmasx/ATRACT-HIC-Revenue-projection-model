@@ -325,8 +325,6 @@
             box-shadow: 0 5px 20px rgba(231, 76, 60, 0.5) !important;
         }
         
-
-        
         .chart-legend {
             text-align: center;
             margin-top: 15px;
@@ -405,12 +403,6 @@
             .metrics-grid {
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             }
-        }
-        
-        /* Loading Animation */
-        .loading {
-            opacity: 0.7;
-            pointer-events: none;
         }
         
         /* Accessibility */
@@ -543,27 +535,37 @@
 
         <section class="dashboard">
             <div class="chart-section">
-                <h3>📊 HIC Production Revenue</h3>
+                <h3>📊 HIC Revenue Components</h3>
                 <div class="chart-container">
-                    <div class="simple-chart" id="productionChart">
-                        <!-- Production revenue bars -->
+                    <canvas id="revenueBreakdownCanvas" width="400" height="250" style="border: 1px solid #ddd;"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #3498db;"></span>
+                        Production Revenue
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #2ecc71;"></span>
+                        Equity Value (40%)
                     </div>
                 </div>
-                <p style="text-align: center; color: #666; font-size: 0.9em; margin-top: 10px;">
-                    Production revenue decreases as B2B price drops
-                </p>
             </div>
             
             <div class="chart-section">
-                <h3>🎯 HIC Equity Value (40%)</h3>
+                <h3>🎯 Volume & Valuation Curves</h3>
                 <div class="chart-container">
-                    <div class="simple-chart" id="equityChart">
-                        <!-- Equity value bars -->
+                    <canvas id="volumeValuationCanvas" width="400" height="250" style="border: 1px solid #ddd;"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #9b59b6;"></span>
+                        Volume (thousands)
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #f39c12;"></span>
+                        ATRACT Valuation (M€)
                     </div>
                 </div>
-                <p style="text-align: center; color: #666; font-size: 0.9em; margin-top: 10px;">
-                    Equity value increases as B2B price drops
-                </p>
             </div>
         </section>
         
@@ -621,10 +623,6 @@
                 const attractFixedCosts = (parseFloat(document.getElementById('attractFixedCosts').value) || 200) * 1000;
                 const valuationMultiple = parseFloat(document.getElementById('valuationMultiple').value) || 10;
                 const hicShare = (parseFloat(document.getElementById('hicShare').value) || 40) / 100;
-                
-                // Validate inputs
-                if (hicPrice < 20 || hicPrice > 500) throw new Error('Invalid HIC price');
-                if (consumerFinalPrice < hicPrice) throw new Error('Consumer price too low');
                 
                 // ATRACT pricing strategy
                 const attractCostPrice = hicPrice;
@@ -759,8 +757,7 @@
             `;
             
             updateChart();
-            updateProductionChart();
-            updateEquityChart();
+            drawLineCharts();
             updateRecommendation(metrics);
             
             state.isCalculating = false;
@@ -806,12 +803,8 @@
                 // Apply styling based on price type
                 if (price === optimalPrice) {
                     bar.classList.add('optimal-bar');
-                    bar.setAttribute('aria-label', `Optimal price: ${formatCurrency(price)} with revenue ${formatCurrency(value, 1)}M`);
                 } else if (Math.abs(price - state.currentPrice) <= 5) {
                     bar.classList.add('current-bar');
-                    bar.setAttribute('aria-label', `Current price: ${formatCurrency(price)} with revenue ${formatCurrency(value, 1)}M`);
-                } else {
-                    bar.setAttribute('aria-label', `Price: ${formatCurrency(price)} with revenue ${formatCurrency(value, 1)}M`);
                 }
                 
                 bar.style.height = height + 'px';
@@ -826,55 +819,7 @@
                 valueLabel.className = 'bar-value';
                 valueLabel.textContent = formatCurrency(value, 1) + 'M';
                 
-                // Add click handler for accessibility
-                bar.addEventListener('click', () => {
-                    document.getElementById('priceSlider').value = price;
-                    updateMetrics();
-                });
-        }
-        
-        function updateProductionChart() {
-            const pricePoints = [];
-            const productionValues = [];
-            
-            // Calculate data for production chart - EXACT same approach as main chart
-            for (let price = 30; price <= 150; price += 10) {
-                const metrics = calculateMetrics(price);
-                if (metrics) {
-                    pricePoints.push(price);
-                    productionValues.push(metrics.hicProductionRevenue / 1000000);
-                }
-            }
-
-            if (productionValues.length === 0) return;
-
-            // Find max value for scaling - EXACT same approach
-            const maxValue = Math.max(...productionValues);
-
-            // Create chart - EXACT same approach
-            const chartContainer = document.getElementById('productionChart');
-            chartContainer.innerHTML = '';
-
-            pricePoints.forEach((price, index) => {
-                const value = productionValues[index];
-                const height = Math.max(20, (value / maxValue) * 220);
-                
-                const bar = document.createElement('div');
-                bar.className = 'bar';
-                bar.style.height = height + 'px';
-                bar.style.width = '45px';
-                bar.style.background = 'linear-gradient(to top, #3498db, #74b9ff)';
-                
-                // Add labels - EXACT same approach
-                const label = document.createElement('div');
-                label.className = 'bar-label';
-                label.textContent = formatCurrency(price);
-                
-                const valueLabel = document.createElement('div');
-                valueLabel.className = 'bar-value';
-                valueLabel.textContent = formatCurrency(value, 1) + 'M';
-                
-                // Add click handler - EXACT same approach
+                // Add click handler
                 bar.addEventListener('click', () => {
                     document.getElementById('priceSlider').value = price;
                     updateMetrics();
@@ -886,62 +831,172 @@
             });
         }
         
-        function updateEquityChart() {
-            const pricePoints = [];
-            const equityValues = [];
+        function drawLineCharts() {
+            // Calculate data for line charts
+            const prices = [];
+            const productionRevenue = [];
+            const equityValue = [];
+            const volume = [];
+            const valuation = [];
             
-            // Calculate data for equity chart - EXACT same approach as main chart
-            for (let price = 30; price <= 150; price += 10) {
+            for (let price = 30; price <= 150; price += 5) {
                 const metrics = calculateMetrics(price);
                 if (metrics) {
-                    pricePoints.push(price);
-                    equityValues.push(metrics.hicEquityValue / 1000000);
+                    prices.push(price);
+                    productionRevenue.push(metrics.hicProductionRevenue / 1000000);
+                    equityValue.push(metrics.hicEquityValue / 1000000);
+                    volume.push(metrics.volume / 1000);
+                    valuation.push(metrics.attractValuation / 1000000);
                 }
             }
-
-            if (equityValues.length === 0) return;
-
-            // Find max value for scaling - EXACT same approach
-            const maxValue = Math.max(...equityValues);
-
-            // Create chart - EXACT same approach
-            const chartContainer = document.getElementById('equityChart');
-            chartContainer.innerHTML = '';
-
-            pricePoints.forEach((price, index) => {
-                const value = equityValues[index];
-                const height = Math.max(20, (value / maxValue) * 220);
-                
-                const bar = document.createElement('div');
-                bar.className = 'bar';
-                bar.style.height = height + 'px';
-                bar.style.width = '45px';
-                bar.style.background = 'linear-gradient(to top, #2ecc71, #00cec9)';
-                
-                // Add labels - EXACT same approach
-                const label = document.createElement('div');
-                label.className = 'bar-label';
-                label.textContent = formatCurrency(price);
-                
-                const valueLabel = document.createElement('div');
-                valueLabel.className = 'bar-value';
-                valueLabel.textContent = formatCurrency(value, 1) + 'M';
-                
-                // Add click handler - EXACT same approach
-                bar.addEventListener('click', () => {
-                    document.getElementById('priceSlider').value = price;
-                    updateMetrics();
-                });
-                
-                bar.appendChild(label);
-                bar.appendChild(valueLabel);
-                chartContainer.appendChild(bar);
-            });
+            
+            // Draw both canvas charts
+            drawCanvasChart('revenueBreakdownCanvas', prices, [productionRevenue, equityValue], ['#3498db', '#2ecc71'], 'Revenue (M€)');
+            drawCanvasChart('volumeValuationCanvas', prices, [volume, valuation], ['#9b59b6', '#f39c12'], 'Volume/Value');
         }
+        
+        function drawCanvasChart(canvasId, xData, yDatasets, colors, yLabel) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Set up margins
+            const margin = { top: 20, right: 30, bottom: 50, left: 60 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            
+            // Find data ranges
+            const xMin = Math.min(...xData);
+            const xMax = Math.max(...xData);
+            const allYValues = yDatasets.flat();
+            const yMin = Math.min(0, Math.min(...allYValues));
+            const yMax = Math.max(...allYValues);
+            
+            // Scale functions
+            const xScale = (x) => margin.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
+            const yScale = (y) => margin.top + chartHeight - ((y - yMin) / (yMax - yMin)) * chartHeight;
+            
+            // Draw background
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 0.5;
+            
+            // Horizontal grid lines
+            for (let i = 0; i <= 5; i++) {
+                const y = margin.top + (i * chartHeight / 5);
+                ctx.beginPath();
+                ctx.moveTo(margin.left, y);
+                ctx.lineTo(margin.left + chartWidth, y);
+                ctx.stroke();
+            }
+            
+            // Vertical grid lines
+            for (let i = 0; i <= 6; i++) {
+                const x = margin.left + (i * chartWidth / 6);
+                ctx.beginPath();
+                ctx.moveTo(x, margin.top);
+                ctx.lineTo(x, margin.top + chartHeight);
+                ctx.stroke();
+            }
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top + chartHeight);
+            ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+            ctx.stroke();
+            
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(margin.left, margin.top);
+            ctx.lineTo(margin.left, margin.top + chartHeight);
+            ctx.stroke();
+            
+            // Draw axis labels
+            ctx.fillStyle = '#666';
+            ctx.font = '11px Arial';
+            ctx.textAlign = 'center';
+            
+            // X axis labels
+            for (let i = 0; i < xData.length; i += 4) {
+                const x = xScale(xData[i]);
+                const y = margin.top + chartHeight + 20;
+                ctx.fillText('€' + xData[i], x, y);
+            }
+            
+            // Y axis labels
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 5; i++) {
+                const value = yMin + ((yMax - yMin) * i / 5);
+                const x = margin.left - 10;
+                const y = margin.top + chartHeight - (i * chartHeight / 5) + 4;
+                ctx.fillText(value.toFixed(1), x, y);
+            }
+            
+            // Draw axis titles
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            
+            // X axis title
+            ctx.fillText('B2B Price (€)', margin.left + chartWidth / 2, height - 10);
+            
+            // Y axis title
+            ctx.save();
+            ctx.translate(15, margin.top + chartHeight / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(yLabel, 0, 0);
+            ctx.restore();
+            
+            // Draw data lines
+            yDatasets.forEach((dataset, index) => {
+                const color = colors[index];
                 
-                bar.appendChild(label);
-                bar.appendChild(valueLabel);
-                chartContainer.appendChild(bar);
+                // Draw line
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                for (let i = 0; i < dataset.length; i++) {
+                    const x = xScale(xData[i]);
+                    const y = yScale(dataset[i]);
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                
+                ctx.stroke();
+                
+                // Draw points
+                ctx.fillStyle = color;
+                for (let i = 0; i < dataset.length; i++) {
+                    const x = xScale(xData[i]);
+                    const y = yScale(dataset[i]);
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // White border
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
             });
         }
         
@@ -998,22 +1053,6 @@
                 input.addEventListener('input', debounce(updateMetrics, 300));
                 input.addEventListener('change', updateMetrics);
             });
-            
-            // Error handling for invalid inputs
-            numberInputs.forEach(input => {
-                input.addEventListener('blur', function() {
-                    const value = parseFloat(this.value);
-                    const min = parseFloat(this.min) || 0;
-                    const max = parseFloat(this.max) || Infinity;
-                    
-                    if (isNaN(value) || value < min || value > max) {
-                        this.style.borderColor = '#e74c3c';
-                        setTimeout(() => {
-                            this.style.borderColor = '';
-                        }, 2000);
-                    }
-                });
-            });
         }
         
         // Initialize application
@@ -1021,44 +1060,9 @@
             try {
                 initializeEventListeners();
                 updateMetrics();
-                
-                // Add keyboard navigation for accessibility
-                document.addEventListener('keydown', function(e) {
-                    if (e.target.id === 'priceSlider') {
-                        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-                            e.preventDefault();
-                            const newValue = Math.max(25, parseInt(e.target.value) - 5);
-                            e.target.value = newValue;
-                            updateMetrics();
-                        } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-                            e.preventDefault();
-                            const newValue = Math.min(150, parseInt(e.target.value) + 5);
-                            e.target.value = newValue;
-                            updateMetrics();
-                        }
-                    }
-                });
-                
                 console.log('Revenue Projection Model initialized successfully');
             } catch (error) {
                 console.error('Initialization error:', error);
-                
-                // Fallback display
-                document.getElementById('metricsGrid').innerHTML = `
-                    <div class="metric-card" style="grid-column: 1 / -1; background: #e74c3c; color: white;">
-                        <h3>Initialization Error</h3>
-                        <div class="value">⚠️</div>
-                        <div class="unit">Please refresh the page</div>
-                    </div>
-                `;
-            }
-        }
-        
-        // Performance monitoring
-        function logPerformance() {
-            if (typeof performance !== 'undefined' && performance.timing) {
-                const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-                console.log(`Page load time: ${loadTime}ms`);
             }
         }
         
@@ -1067,18 +1071,6 @@
             document.addEventListener('DOMContentLoaded', initialize);
         } else {
             initialize();
-        }
-        
-        // Log performance after page load
-        window.addEventListener('load', logPerformance);
-        
-        // Export for debugging (only in development)
-        if (typeof window !== 'undefined') {
-            window.revenueModel = {
-                calculateMetrics,
-                updateMetrics,
-                state
-            };
         }
     </script>
 </body>
