@@ -750,9 +750,9 @@
                     <div class="unit">equity value</div>
                 </div>
                 <div class="metric-card total-metric">
-                    <h3>TOTAL HIC VALUE</h3>
-                    <div class="value">${formatCurrency(metrics.hicTotalValue / 1000000, 1)}M</div>
-                    <div class="unit">Production + Equity</div>
+                    <h3>TOTAL ATRACT VALUE</h3>
+                    <div class="value">${formatCurrency(metrics.attractValuation / 1000000, 1)}M</div>
+                    <div class="unit">Company Valuation</div>
                 </div>
             `;
             
@@ -760,7 +760,66 @@
             drawLineCharts();
             updateRecommendation(metrics);
             
+            // Add big highlighted HIC value box
+            updateHicValueBox(metrics);
+            
             state.isCalculating = false;
+        }
+        
+        function updateHicValueBox(metrics) {
+            // Remove existing box if it exists
+            const existingBox = document.getElementById('hicValueBox');
+            if (existingBox) {
+                existingBox.remove();
+            }
+            
+            // Create big highlighted box for total HIC value
+            const hicBox = document.createElement('section');
+            hicBox.id = 'hicValueBox';
+            hicBox.style.background = 'linear-gradient(135deg, #00b894 0%, #00cec9 100%)';
+            hicBox.style.borderRadius = '20px';
+            hicBox.style.padding = '40px';
+            hicBox.style.margin = '30px 0';
+            hicBox.style.color = 'white';
+            hicBox.style.boxShadow = '0 15px 40px rgba(0,0,0,0.15)';
+            hicBox.style.textAlign = 'center';
+            hicBox.style.position = 'relative';
+            hicBox.style.overflow = 'hidden';
+            
+            // Add subtle animation
+            hicBox.style.transform = 'scale(1.02)';
+            hicBox.style.transition = 'all 0.3s ease';
+            
+            // Add background pattern
+            hicBox.style.backgroundImage = 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)';
+            
+            hicBox.innerHTML = `
+                <div style="position: relative; z-index: 2;">
+                    <h2 style="font-size: 2.5rem; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                        💰 TOTAL HIC VALUE
+                    </h2>
+                    <div style="font-size: 4rem; font-weight: 700; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                        ${formatCurrency(metrics.hicTotalValue / 1000000, 1)}M
+                    </div>
+                    <div style="font-size: 1.3rem; opacity: 0.9; margin-bottom: 20px;">
+                        Production Revenue + Return on Equity
+                    </div>
+                    <div style="display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;">
+                        <div style="background: rgba(255,255,255,0.2); padding: 15px 25px; border-radius: 15px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 0.9rem; opacity: 0.8;">Production Revenue</div>
+                            <div style="font-size: 1.8rem; font-weight: 600;">${formatCurrency(metrics.hicProductionRevenue / 1000000, 1)}M</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.2); padding: 15px 25px; border-radius: 15px; backdrop-filter: blur(10px);">
+                            <div style="font-size: 0.9rem; opacity: 0.8;">Equity Value (40%)</div>
+                            <div style="font-size: 1.8rem; font-weight: 600;">${formatCurrency(metrics.hicEquityValue / 1000000, 1)}M</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert before the recommendation section
+            const recommendationSection = document.getElementById('recommendation');
+            recommendationSection.parentNode.insertBefore(hicBox, recommendationSection);
         }
         
         function updateChart() {
@@ -881,21 +940,24 @@
                 label.style.fontWeight = '600';
                 label.style.whiteSpace = 'nowrap';
                 
+                // Value label positioned at consistent height above chart area
                 const valueLabel = document.createElement('div');
                 valueLabel.className = 'bar-value';
                 valueLabel.style.position = 'absolute';
-                valueLabel.style.top = '-30px';
+                valueLabel.style.top = '-60px'; // Fixed height above chart
                 valueLabel.style.left = '50%';
                 valueLabel.style.transform = 'translateX(-50%)';
-                valueLabel.style.fontSize = '0.75rem';
+                valueLabel.style.fontSize = '0.7rem';
                 valueLabel.style.color = '#333';
                 valueLabel.style.fontWeight = '600';
                 valueLabel.style.background = 'rgba(255,255,255,0.95)';
-                valueLabel.style.padding = '3px 6px';
+                valueLabel.style.padding = '4px 6px';
                 valueLabel.style.borderRadius = '4px';
                 valueLabel.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
                 valueLabel.style.whiteSpace = 'nowrap';
-                valueLabel.innerHTML = `Total: ${formatCurrency(totalValue, 1)}M<br><small>Prod: ${formatCurrency(productionValue, 1)}M | Equity: ${formatCurrency(equityValue, 1)}M</small>`;
+                valueLabel.style.textAlign = 'center';
+                valueLabel.style.lineHeight = '1.2';
+                valueLabel.innerHTML = `<strong>Total: ${formatCurrency(totalValue, 1)}M</strong><br><small>Prod: ${formatCurrency(productionValue, 1)}M | Equity: ${formatCurrency(equityValue, 1)}M</small>`;
                 
                 // Add click handler
                 barContainer.addEventListener('click', () => {
