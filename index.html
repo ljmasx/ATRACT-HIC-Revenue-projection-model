@@ -543,41 +543,27 @@
 
         <section class="dashboard">
             <div class="chart-section">
-                <h3>📊 HIC Revenue Breakdown</h3>
+                <h3>📊 HIC Production Revenue</h3>
                 <div class="chart-container">
-                    <div class="simple-chart" id="breakdownChart">
-                        <!-- Revenue breakdown chart -->
+                    <div class="simple-chart" id="productionChart">
+                        <!-- Production revenue bars -->
                     </div>
                 </div>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <span class="legend-color" style="background: #3498db;"></span>
-                        Production Revenue
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background: #2ecc71;"></span>
-                        Equity Value (40%)
-                    </div>
-                </div>
+                <p style="text-align: center; color: #666; font-size: 0.9em; margin-top: 10px;">
+                    Production revenue decreases as B2B price drops
+                </p>
             </div>
             
             <div class="chart-section">
-                <h3>🎯 Volume & Valuation Impact</h3>
+                <h3>🎯 HIC Equity Value (40%)</h3>
                 <div class="chart-container">
-                    <div class="simple-chart" id="volumeChart">
-                        <!-- Volume chart -->
+                    <div class="simple-chart" id="equityChart">
+                        <!-- Equity value bars -->
                     </div>
                 </div>
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <span class="legend-color" style="background: #9b59b6;"></span>
-                        Volume (thousands)
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color" style="background: #f39c12;"></span>
-                        ATRACT Valuation (M€)
-                    </div>
-                </div>
+                <p style="text-align: center; color: #666; font-size: 0.9em; margin-top: 10px;">
+                    Equity value increases as B2B price drops
+                </p>
             </div>
         </section>
         
@@ -773,7 +759,8 @@
             `;
             
             updateChart();
-            updateSimpleCharts();
+            updateProductionChart();
+            updateEquityChart();
             updateRecommendation(metrics);
             
             state.isCalculating = false;
@@ -846,120 +833,110 @@
                 });
         }
         
-        function updateSimpleCharts() {
-            // Calculate data for all charts
+        function updateProductionChart() {
             const pricePoints = [];
-            const productionData = [];
-            const equityData = [];
-            const volumeData = [];
-            const valuationData = [];
+            const productionValues = [];
             
+            // Calculate data for production chart - EXACT same approach as main chart
             for (let price = 30; price <= 150; price += 10) {
                 const metrics = calculateMetrics(price);
                 if (metrics) {
                     pricePoints.push(price);
-                    productionData.push(metrics.hicProductionRevenue / 1000000);
-                    equityData.push(metrics.hicEquityValue / 1000000);
-                    volumeData.push(metrics.volume / 1000);
-                    valuationData.push(metrics.attractValuation / 1000000);
+                    productionValues.push(metrics.hicProductionRevenue / 1000000);
                 }
             }
-            
-            // Update breakdown chart
-            createSimpleBarChart('breakdownChart', pricePoints, [productionData, equityData], ['#3498db', '#2ecc71'], ['M€', 'M€']);
-            
-            // Update volume chart
-            createSimpleBarChart('volumeChart', pricePoints, [volumeData, valuationData], ['#9b59b6', '#f39c12'], ['k units', 'M€']);
-        }
-        
-        function createSimpleBarChart(containerId, labels, datasets, colors, units) {
-            const container = document.getElementById(containerId);
-            if (!container || !datasets.length) return;
-            
-            container.innerHTML = '';
-            
-            // Find max value for scaling
-            const allValues = datasets.flat();
-            const maxValue = Math.max(...allValues);
-            
-            // Create bars for each price point
-            labels.forEach((label, index) => {
-                const barGroup = document.createElement('div');
-                barGroup.style.display = 'flex';
-                barGroup.style.flexDirection = 'column';
-                barGroup.style.alignItems = 'center';
-                barGroup.style.margin = '0 5px';
-                barGroup.style.flex = '1';
+
+            if (productionValues.length === 0) return;
+
+            // Find max value for scaling - EXACT same approach
+            const maxValue = Math.max(...productionValues);
+
+            // Create chart - EXACT same approach
+            const chartContainer = document.getElementById('productionChart');
+            chartContainer.innerHTML = '';
+
+            pricePoints.forEach((price, index) => {
+                const value = productionValues[index];
+                const height = Math.max(20, (value / maxValue) * 220);
                 
-                // Create bars for each dataset at this price point
-                datasets.forEach((dataset, datasetIndex) => {
-                    const value = dataset[index];
-                    const height = Math.max(10, (value / maxValue) * 150);
-                    
-                    const bar = document.createElement('div');
-                    bar.style.width = '20px';
-                    bar.style.height = height + 'px';
-                    bar.style.backgroundColor = colors[datasetIndex];
-                    bar.style.margin = '2px';
-                    bar.style.borderRadius = '3px';
-                    bar.style.cursor = 'pointer';
-                    bar.style.transition = 'all 0.3s ease';
-                    
-                    // Add hover effect
-                    bar.addEventListener('mouseenter', function() {
-                        this.style.opacity = '0.7';
-                        showSimpleTooltip(event, `€${label}: ${value.toFixed(1)} ${units[datasetIndex]}`);
-                    });
-                    
-                    bar.addEventListener('mouseleave', function() {
-                        this.style.opacity = '1';
-                        hideSimpleTooltip();
-                    });
-                    
-                    barGroup.appendChild(bar);
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = height + 'px';
+                bar.style.width = '45px';
+                bar.style.background = 'linear-gradient(to top, #3498db, #74b9ff)';
+                
+                // Add labels - EXACT same approach
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = formatCurrency(price);
+                
+                const valueLabel = document.createElement('div');
+                valueLabel.className = 'bar-value';
+                valueLabel.textContent = formatCurrency(value, 1) + 'M';
+                
+                // Add click handler - EXACT same approach
+                bar.addEventListener('click', () => {
+                    document.getElementById('priceSlider').value = price;
+                    updateMetrics();
                 });
                 
-                // Add label
-                const labelEl = document.createElement('div');
-                labelEl.textContent = '€' + label;
-                labelEl.style.fontSize = '11px';
-                labelEl.style.color = '#666';
-                labelEl.style.marginTop = '5px';
-                barGroup.appendChild(labelEl);
-                
-                container.appendChild(barGroup);
+                bar.appendChild(label);
+                bar.appendChild(valueLabel);
+                chartContainer.appendChild(bar);
             });
         }
         
-        function showSimpleTooltip(event, text) {
-            let tooltip = document.querySelector('.simple-tooltip');
-            if (!tooltip) {
-                tooltip = document.createElement('div');
-                tooltip.className = 'simple-tooltip';
-                tooltip.style.position = 'absolute';
-                tooltip.style.background = 'rgba(0,0,0,0.8)';
-                tooltip.style.color = 'white';
-                tooltip.style.padding = '5px 10px';
-                tooltip.style.borderRadius = '4px';
-                tooltip.style.fontSize = '12px';
-                tooltip.style.pointerEvents = 'none';
-                tooltip.style.zIndex = '1000';
-                tooltip.style.opacity = '0';
-                tooltip.style.transition = 'opacity 0.3s ease';
-                document.body.appendChild(tooltip);
-            }
+        function updateEquityChart() {
+            const pricePoints = [];
+            const equityValues = [];
             
-            tooltip.textContent = text;
-            tooltip.style.opacity = '1';
-            tooltip.style.left = (event.pageX + 10) + 'px';
-            tooltip.style.top = (event.pageY - 30) + 'px';
-        }
-        
-        function hideSimpleTooltip() {
-            const tooltip = document.querySelector('.simple-tooltip');
-            if (tooltip) {
-                tooltip.style.opacity = '0';
+            // Calculate data for equity chart - EXACT same approach as main chart
+            for (let price = 30; price <= 150; price += 10) {
+                const metrics = calculateMetrics(price);
+                if (metrics) {
+                    pricePoints.push(price);
+                    equityValues.push(metrics.hicEquityValue / 1000000);
+                }
             }
+
+            if (equityValues.length === 0) return;
+
+            // Find max value for scaling - EXACT same approach
+            const maxValue = Math.max(...equityValues);
+
+            // Create chart - EXACT same approach
+            const chartContainer = document.getElementById('equityChart');
+            chartContainer.innerHTML = '';
+
+            pricePoints.forEach((price, index) => {
+                const value = equityValues[index];
+                const height = Math.max(20, (value / maxValue) * 220);
+                
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = height + 'px';
+                bar.style.width = '45px';
+                bar.style.background = 'linear-gradient(to top, #2ecc71, #00cec9)';
+                
+                // Add labels - EXACT same approach
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = formatCurrency(price);
+                
+                const valueLabel = document.createElement('div');
+                valueLabel.className = 'bar-value';
+                valueLabel.textContent = formatCurrency(value, 1) + 'M';
+                
+                // Add click handler - EXACT same approach
+                bar.addEventListener('click', () => {
+                    document.getElementById('priceSlider').value = price;
+                    updateMetrics();
+                });
+                
+                bar.appendChild(label);
+                bar.appendChild(valueLabel);
+                chartContainer.appendChild(bar);
+            });
         }
                 
                 bar.appendChild(label);
