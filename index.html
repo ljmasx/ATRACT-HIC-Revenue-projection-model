@@ -325,92 +325,7 @@
             box-shadow: 0 5px 20px rgba(231, 76, 60, 0.5) !important;
         }
         
-        .simple-line-chart {
-            position: relative;
-            height: 100%;
-            padding: 30px 20px 50px 60px;
-            background: #fafafa;
-            border-radius: 8px;
-        }
-        
-        .chart-canvas {
-            position: relative;
-            width: 100%;
-            height: 200px;
-            border-left: 2px solid #333;
-            border-bottom: 2px solid #333;
-        }
-        
-        .chart-point {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            border: 2px solid white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-        
-        .chart-point:hover {
-            width: 12px;
-            height: 12px;
-            margin-left: -2px;
-            margin-top: -2px;
-        }
-        
-        .chart-line-path {
-            position: absolute;
-            height: 3px;
-            transform-origin: left center;
-            border-radius: 2px;
-        }
-        
-        .x-axis-labels {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            padding: 0 0 0 60px;
-        }
-        
-        .x-label {
-            font-size: 11px;
-            color: #666;
-            text-align: center;
-            flex: 1;
-        }
-        
-        .y-axis-labels {
-            position: absolute;
-            left: 5px;
-            top: 30px;
-            bottom: 50px;
-            display: flex;
-            flex-direction: column-reverse;
-            justify-content: space-between;
-            width: 50px;
-        }
-        
-        .y-label {
-            font-size: 11px;
-            color: #666;
-            text-align: right;
-            padding-right: 5px;
-        }
-        
-        .chart-tooltip-simple {
-            position: absolute;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 1000;
-            white-space: nowrap;
-        }
+
         
         .chart-legend {
             text-align: center;
@@ -630,8 +545,8 @@
             <div class="chart-section">
                 <h3>📊 HIC Revenue Breakdown</h3>
                 <div class="chart-container">
-                    <div class="simple-line-chart" id="breakdownChart">
-                        <!-- Simple line chart will be generated here -->
+                    <div class="simple-chart" id="breakdownChart">
+                        <!-- Revenue breakdown chart -->
                     </div>
                 </div>
                 <div class="chart-legend">
@@ -649,8 +564,8 @@
             <div class="chart-section">
                 <h3>🎯 Volume & Valuation Impact</h3>
                 <div class="chart-container">
-                    <div class="simple-line-chart" id="volumeChart">
-                        <!-- Simple line chart will be generated here -->
+                    <div class="simple-chart" id="volumeChart">
+                        <!-- Volume chart -->
                     </div>
                 </div>
                 <div class="chart-legend">
@@ -858,8 +773,7 @@
             `;
             
             updateChart();
-            updateSimpleBreakdownChart();
-            updateSimpleVolumeChart();
+            updateSimpleCharts();
             updateRecommendation(metrics);
             
             state.isCalculating = false;
@@ -932,123 +846,106 @@
                 });
         }
         
-        function createSimpleLineChart(containerId, datasets, colors, labels, yAxisTitle) {
+        function updateSimpleCharts() {
+            // Calculate data for all charts
+            const pricePoints = [];
+            const productionData = [];
+            const equityData = [];
+            const volumeData = [];
+            const valuationData = [];
+            
+            for (let price = 30; price <= 150; price += 10) {
+                const metrics = calculateMetrics(price);
+                if (metrics) {
+                    pricePoints.push(price);
+                    productionData.push(metrics.hicProductionRevenue / 1000000);
+                    equityData.push(metrics.hicEquityValue / 1000000);
+                    volumeData.push(metrics.volume / 1000);
+                    valuationData.push(metrics.attractValuation / 1000000);
+                }
+            }
+            
+            // Update breakdown chart
+            createSimpleBarChart('breakdownChart', pricePoints, [productionData, equityData], ['#3498db', '#2ecc71'], ['M€', 'M€']);
+            
+            // Update volume chart
+            createSimpleBarChart('volumeChart', pricePoints, [volumeData, valuationData], ['#9b59b6', '#f39c12'], ['k units', 'M€']);
+        }
+        
+        function createSimpleBarChart(containerId, labels, datasets, colors, units) {
             const container = document.getElementById(containerId);
             if (!container || !datasets.length) return;
             
             container.innerHTML = '';
             
-            // Get all values to determine range
+            // Find max value for scaling
             const allValues = datasets.flat();
-            const xValues = allValues.map(d => d.x);
-            const yValues = allValues.map(d => d.y);
+            const maxValue = Math.max(...allValues);
             
-            const xMin = Math.min(...xValues);
-            const xMax = Math.max(...xValues);
-            const yMin = Math.min(0, Math.min(...yValues));
-            const yMax = Math.max(...yValues);
-            const yRange = yMax - yMin || 1;
-            
-            // Create chart structure
-            const chartDiv = document.createElement('div');
-            chartDiv.className = 'simple-line-chart';
-            
-            // Y-axis labels
-            const yLabelsDiv = document.createElement('div');
-            yLabelsDiv.className = 'y-axis-labels';
-            for (let i = 0; i <= 4; i++) {
-                const label = document.createElement('div');
-                label.className = 'y-label';
-                const value = yMin + (yRange * i / 4);
-                label.textContent = value.toFixed(1);
-                yLabelsDiv.appendChild(label);
-            }
-            chartDiv.appendChild(yLabelsDiv);
-            
-            // Chart canvas
-            const canvas = document.createElement('div');
-            canvas.className = 'chart-canvas';
-            
-            // Draw each dataset
-            datasets.forEach((data, dataIndex) => {
-                const color = colors[dataIndex];
+            // Create bars for each price point
+            labels.forEach((label, index) => {
+                const barGroup = document.createElement('div');
+                barGroup.style.display = 'flex';
+                barGroup.style.flexDirection = 'column';
+                barGroup.style.alignItems = 'center';
+                barGroup.style.margin = '0 5px';
+                barGroup.style.flex = '1';
                 
-                // Draw points and lines
-                for (let i = 0; i < data.length; i++) {
-                    const point = data[i];
-                    const x = ((point.x - xMin) / (xMax - xMin)) * 100;
-                    const y = 100 - (((point.y - yMin) / yRange) * 100);
+                // Create bars for each dataset at this price point
+                datasets.forEach((dataset, datasetIndex) => {
+                    const value = dataset[index];
+                    const height = Math.max(10, (value / maxValue) * 150);
                     
-                    // Create point
-                    const pointEl = document.createElement('div');
-                    pointEl.className = 'chart-point';
-                    pointEl.style.left = x + '%';
-                    pointEl.style.top = y + '%';
-                    pointEl.style.backgroundColor = color;
-                    pointEl.style.transform = 'translate(-50%, -50%)';
+                    const bar = document.createElement('div');
+                    bar.style.width = '20px';
+                    bar.style.height = height + 'px';
+                    bar.style.backgroundColor = colors[datasetIndex];
+                    bar.style.margin = '2px';
+                    bar.style.borderRadius = '3px';
+                    bar.style.cursor = 'pointer';
+                    bar.style.transition = 'all 0.3s ease';
                     
-                    // Add tooltip
-                    pointEl.addEventListener('mouseenter', function(e) {
-                        showSimpleTooltip(e, `€${point.x}: ${formatNumber(point.y, 1)} ${labels[dataIndex] || ''}`);
+                    // Add hover effect
+                    bar.addEventListener('mouseenter', function() {
+                        this.style.opacity = '0.7';
+                        showSimpleTooltip(event, `€${label}: ${value.toFixed(1)} ${units[datasetIndex]}`);
                     });
-                    pointEl.addEventListener('mouseleave', hideSimpleTooltip);
                     
-                    canvas.appendChild(pointEl);
+                    bar.addEventListener('mouseleave', function() {
+                        this.style.opacity = '1';
+                        hideSimpleTooltip();
+                    });
                     
-                    // Draw line to next point
-                    if (i < data.length - 1) {
-                        const nextPoint = data[i + 1];
-                        const nextX = ((nextPoint.x - xMin) / (xMax - xMin)) * 100;
-                        const nextY = 100 - (((nextPoint.y - yMin) / yRange) * 100);
-                        
-                        const deltaX = nextX - x;
-                        const deltaY = nextY - y;
-                        const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                        const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
-                        
-                        const line = document.createElement('div');
-                        line.className = 'chart-line-path';
-                        line.style.left = x + '%';
-                        line.style.top = y + '%';
-                        line.style.width = length + '%';
-                        line.style.backgroundColor = color;
-                        line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-                        line.style.zIndex = '5';
-                        
-                        canvas.appendChild(line);
-                    }
-                }
+                    barGroup.appendChild(bar);
+                });
+                
+                // Add label
+                const labelEl = document.createElement('div');
+                labelEl.textContent = '€' + label;
+                labelEl.style.fontSize = '11px';
+                labelEl.style.color = '#666';
+                labelEl.style.marginTop = '5px';
+                barGroup.appendChild(labelEl);
+                
+                container.appendChild(barGroup);
             });
-            
-            chartDiv.appendChild(canvas);
-            
-            // X-axis labels
-            const xLabelsDiv = document.createElement('div');
-            xLabelsDiv.className = 'x-axis-labels';
-            const step = Math.ceil(datasets[0].length / 6); // Show ~6 labels
-            datasets[0].forEach((point, i) => {
-                if (i % step === 0 || i === datasets[0].length - 1) {
-                    const label = document.createElement('div');
-                    label.className = 'x-label';
-                    label.textContent = '€' + point.x;
-                    xLabelsDiv.appendChild(label);
-                } else {
-                    const label = document.createElement('div');
-                    label.className = 'x-label';
-                    label.textContent = '';
-                    xLabelsDiv.appendChild(label);
-                }
-            });
-            chartDiv.appendChild(xLabelsDiv);
-            
-            container.appendChild(chartDiv);
         }
         
         function showSimpleTooltip(event, text) {
-            let tooltip = document.querySelector('.chart-tooltip-simple');
+            let tooltip = document.querySelector('.simple-tooltip');
             if (!tooltip) {
                 tooltip = document.createElement('div');
-                tooltip.className = 'chart-tooltip-simple';
+                tooltip.className = 'simple-tooltip';
+                tooltip.style.position = 'absolute';
+                tooltip.style.background = 'rgba(0,0,0,0.8)';
+                tooltip.style.color = 'white';
+                tooltip.style.padding = '5px 10px';
+                tooltip.style.borderRadius = '4px';
+                tooltip.style.fontSize = '12px';
+                tooltip.style.pointerEvents = 'none';
+                tooltip.style.zIndex = '1000';
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 0.3s ease';
                 document.body.appendChild(tooltip);
             }
             
@@ -1059,54 +956,11 @@
         }
         
         function hideSimpleTooltip() {
-            const tooltip = document.querySelector('.chart-tooltip-simple');
+            const tooltip = document.querySelector('.simple-tooltip');
             if (tooltip) {
                 tooltip.style.opacity = '0';
             }
         }
-        
-        function updateSimpleBreakdownChart() {
-            const productionData = [];
-            const equityData = [];
-            
-            // Calculate data for breakdown chart
-            for (let price = 30; price <= 150; price += 10) {
-                const metrics = calculateMetrics(price);
-                if (metrics) {
-                    productionData.push({
-                        x: price,
-                        y: metrics.hicProductionRevenue / 1000000
-                    });
-                    equityData.push({
-                        x: price,
-                        y: metrics.hicEquityValue / 1000000
-                    });
-                }
-            }
-            
-            createSimpleLineChart('breakdownChart', [productionData, equityData], ['#3498db', '#2ecc71'], ['M€', 'M€'], 'Revenue (M€)');
-        }
-        
-        function updateSimpleVolumeChart() {
-            const volumeData = [];
-            const valuationData = [];
-            
-            // Calculate data for volume chart  
-            for (let price = 30; price <= 150; price += 10) {
-                const metrics = calculateMetrics(price);
-                if (metrics) {
-                    volumeData.push({
-                        x: price,
-                        y: metrics.volume / 1000 // Convert to thousands
-                    });
-                    valuationData.push({
-                        x: price,
-                        y: metrics.attractValuation / 1000000 // Convert to millions
-                    });
-                }
-            }
-            
-            createSimpleLineChart('volumeChart', [volumeData, valuationData], ['#9b59b6', '#f39c12'], ['k units', 'M€'], 'Volume/Valuation');
                 
                 bar.appendChild(label);
                 bar.appendChild(valueLabel);
