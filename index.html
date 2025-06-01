@@ -511,24 +511,24 @@
         </section>
         
         <section class="chart-section">
-            <h3>💰 Total HIC Revenue by B2B Price</h3>
+            <h3>💰 Total HIC Revenue (Revenue + Return on Equity)</h3>
             <div class="chart-container">
-                <div class="simple-chart" id="revenueChart" role="img" aria-label="Bar chart showing HIC revenue by price point">
+                <div class="simple-chart" id="revenueChart" role="img" aria-label="Stacked bar chart showing HIC revenue components by price point">
                     <!-- Chart bars will be generated here -->
                 </div>
             </div>
             <div class="chart-legend">
                 <div class="legend-item">
+                    <span class="legend-color" style="background: #3498db;"></span>
+                    Production Revenue
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #2ecc71;"></span>
+                    Equity Value (40%)
+                </div>
+                <div class="legend-item">
                     <span class="legend-color" style="background: linear-gradient(to right, #00b894, #00cec9);"></span>
                     Optimal Price
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color" style="background: linear-gradient(to right, #e74c3c, #ff7675);"></span>
-                    Current Price
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color" style="background: linear-gradient(to right, #3498db, #74b9ff);"></span>
-                    Other Prices
                 </div>
             </div>
         </section>
@@ -766,6 +766,8 @@
         function updateChart() {
             const pricePoints = [];
             const totalValues = [];
+            const productionValues = [];
+            const equityValues = [];
             
             // Calculate data for all price points
             for (let price = 30; price <= 150; price += 10) {
@@ -773,6 +775,8 @@
                 if (metrics) {
                     pricePoints.push(price);
                     totalValues.push(metrics.hicTotalValue / 1000000);
+                    productionValues.push(metrics.hicProductionRevenue / 1000000);
+                    equityValues.push(metrics.hicEquityValue / 1000000);
                 }
             }
 
@@ -793,41 +797,115 @@
             chartContainer.innerHTML = '';
 
             pricePoints.forEach((price, index) => {
-                const value = totalValues[index];
-                const normalizedHeight = valueRange > 0 ? ((value - minValue) / valueRange) : 0.5;
-                const height = Math.max(20, normalizedHeight * 220); // Min 20px, max 220px
+                const totalValue = totalValues[index];
+                const productionValue = productionValues[index];
+                const equityValue = equityValues[index];
                 
-                const bar = document.createElement('div');
-                bar.className = 'bar';
+                const normalizedHeight = valueRange > 0 ? ((totalValue - minValue) / valueRange) : 0.5;
+                const totalHeight = Math.max(20, normalizedHeight * 220); // Min 20px, max 220px
                 
-                // Apply styling based on price type
+                // Calculate heights for each segment
+                const productionHeight = (productionValue / totalValue) * totalHeight;
+                const equityHeight = (equityValue / totalValue) * totalHeight;
+                
+                // Create container for stacked bar
+                const barContainer = document.createElement('div');
+                barContainer.style.display = 'flex';
+                barContainer.style.flexDirection = 'column-reverse';
+                barContainer.style.alignItems = 'center';
+                barContainer.style.height = totalHeight + 'px';
+                barContainer.style.width = '45px';
+                barContainer.style.margin = '0 3px';
+                barContainer.style.position = 'relative';
+                barContainer.style.cursor = 'pointer';
+                
+                // Production revenue segment (bottom)
+                const productionBar = document.createElement('div');
+                productionBar.style.height = productionHeight + 'px';
+                productionBar.style.width = '100%';
+                productionBar.style.background = '#3498db';
+                productionBar.style.borderRadius = '0 0 4px 4px';
+                productionBar.style.transition = 'all 0.3s ease';
+                
+                // Equity value segment (top)
+                const equityBar = document.createElement('div');
+                equityBar.style.height = equityHeight + 'px';
+                equityBar.style.width = '100%';
+                equityBar.style.background = '#2ecc71';
+                equityBar.style.borderRadius = '4px 4px 0 0';
+                equityBar.style.transition = 'all 0.3s ease';
+                
+                // Add optimal price highlight
                 if (price === optimalPrice) {
-                    bar.classList.add('optimal-bar');
-                } else if (Math.abs(price - state.currentPrice) <= 5) {
-                    bar.classList.add('current-bar');
+                    barContainer.style.boxShadow = '0 0 20px rgba(0, 184, 148, 0.8)';
+                    barContainer.style.transform = 'scale(1.05)';
+                    productionBar.style.background = 'linear-gradient(to top, #2980b9, #3498db)';
+                    equityBar.style.background = 'linear-gradient(to top, #27ae60, #2ecc71)';
                 }
                 
-                bar.style.height = height + 'px';
-                bar.style.width = '45px';
+                // Add current price highlight
+                if (Math.abs(price - state.currentPrice) <= 5) {
+                    barContainer.style.border = '3px solid #e74c3c';
+                    barContainer.style.borderRadius = '4px';
+                }
+                
+                // Add hover effects
+                barContainer.addEventListener('mouseenter', function() {
+                    this.style.transform = 'scale(1.05)';
+                    productionBar.style.opacity = '0.8';
+                    equityBar.style.opacity = '0.8';
+                });
+                
+                barContainer.addEventListener('mouseleave', function() {
+                    if (price !== optimalPrice) {
+                        this.style.transform = 'scale(1)';
+                    }
+                    productionBar.style.opacity = '1';
+                    equityBar.style.opacity = '1';
+                });
+                
+                // Add segments to container
+                barContainer.appendChild(productionBar);
+                barContainer.appendChild(equityBar);
                 
                 // Add labels
                 const label = document.createElement('div');
                 label.className = 'bar-label';
                 label.textContent = formatCurrency(price);
+                label.style.position = 'absolute';
+                label.style.bottom = '-35px';
+                label.style.left = '50%';
+                label.style.transform = 'translateX(-50%)';
+                label.style.fontSize = '0.8rem';
+                label.style.color = '#666';
+                label.style.fontWeight = '600';
+                label.style.whiteSpace = 'nowrap';
                 
                 const valueLabel = document.createElement('div');
                 valueLabel.className = 'bar-value';
-                valueLabel.textContent = formatCurrency(value, 1) + 'M';
+                valueLabel.style.position = 'absolute';
+                valueLabel.style.top = '-30px';
+                valueLabel.style.left = '50%';
+                valueLabel.style.transform = 'translateX(-50%)';
+                valueLabel.style.fontSize = '0.75rem';
+                valueLabel.style.color = '#333';
+                valueLabel.style.fontWeight = '600';
+                valueLabel.style.background = 'rgba(255,255,255,0.95)';
+                valueLabel.style.padding = '3px 6px';
+                valueLabel.style.borderRadius = '4px';
+                valueLabel.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+                valueLabel.style.whiteSpace = 'nowrap';
+                valueLabel.innerHTML = `Total: ${formatCurrency(totalValue, 1)}M<br><small>Prod: ${formatCurrency(productionValue, 1)}M | Equity: ${formatCurrency(equityValue, 1)}M</small>`;
                 
                 // Add click handler
-                bar.addEventListener('click', () => {
+                barContainer.addEventListener('click', () => {
                     document.getElementById('priceSlider').value = price;
                     updateMetrics();
                 });
                 
-                bar.appendChild(label);
-                bar.appendChild(valueLabel);
-                chartContainer.appendChild(bar);
+                barContainer.appendChild(label);
+                barContainer.appendChild(valueLabel);
+                chartContainer.appendChild(barContainer);
             });
         }
         
