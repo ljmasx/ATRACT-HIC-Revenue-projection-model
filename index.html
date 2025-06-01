@@ -325,53 +325,91 @@
             box-shadow: 0 5px 20px rgba(231, 76, 60, 0.5) !important;
         }
         
-        .line-chart {
+        .simple-line-chart {
             position: relative;
             height: 100%;
-            padding: 20px;
-            background: linear-gradient(90deg, transparent 0%, rgba(52, 152, 219, 0.02) 100%);
+            padding: 30px 20px 50px 60px;
+            background: #fafafa;
+            border-radius: 8px;
         }
         
-        .line-chart svg {
+        .chart-canvas {
+            position: relative;
             width: 100%;
-            height: 100%;
-            overflow: visible;
+            height: 200px;
+            border-left: 2px solid #333;
+            border-bottom: 2px solid #333;
         }
         
-        .chart-line {
-            fill: none;
-            stroke-width: 3;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-        
-        .chart-dot {
-            r: 4;
-            stroke-width: 2;
-            stroke: white;
+        .chart-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 2px solid white;
             cursor: pointer;
             transition: all 0.3s ease;
+            z-index: 10;
         }
         
-        .chart-dot:hover {
-            r: 6;
-            stroke-width: 3;
+        .chart-point:hover {
+            width: 12px;
+            height: 12px;
+            margin-left: -2px;
+            margin-top: -2px;
         }
         
-        .chart-axis {
-            stroke: #ddd;
-            stroke-width: 1;
+        .chart-line-path {
+            position: absolute;
+            height: 3px;
+            transform-origin: left center;
+            border-radius: 2px;
         }
         
-        .chart-grid {
-            stroke: #f0f0f0;
-            stroke-width: 0.5;
+        .x-axis-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 0 0 0 60px;
         }
         
-        .chart-label {
+        .x-label {
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .y-axis-labels {
+            position: absolute;
+            left: 5px;
+            top: 30px;
+            bottom: 50px;
+            display: flex;
+            flex-direction: column-reverse;
+            justify-content: space-between;
+            width: 50px;
+        }
+        
+        .y-label {
+            font-size: 11px;
+            color: #666;
+            text-align: right;
+            padding-right: 5px;
+        }
+        
+        .chart-tooltip-simple {
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
             font-size: 12px;
-            fill: #666;
-            text-anchor: middle;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+            white-space: nowrap;
         }
         
         .chart-legend {
@@ -592,8 +630,8 @@
             <div class="chart-section">
                 <h3>📊 HIC Revenue Breakdown</h3>
                 <div class="chart-container">
-                    <div class="line-chart" id="breakdownChart" role="img" aria-label="Line chart showing HIC revenue breakdown">
-                        <!-- Breakdown chart will be generated here -->
+                    <div class="simple-line-chart" id="breakdownChart">
+                        <!-- Simple line chart will be generated here -->
                     </div>
                 </div>
                 <div class="chart-legend">
@@ -611,8 +649,8 @@
             <div class="chart-section">
                 <h3>🎯 Volume & Valuation Impact</h3>
                 <div class="chart-container">
-                    <div class="line-chart" id="volumeChart" role="img" aria-label="Line chart showing volume and valuation impact">
-                        <!-- Volume chart will be generated here -->
+                    <div class="simple-line-chart" id="volumeChart">
+                        <!-- Simple line chart will be generated here -->
                     </div>
                 </div>
                 <div class="chart-legend">
@@ -820,8 +858,8 @@
             `;
             
             updateChart();
-            updateBreakdownChart();
-            updateVolumeChart();
+            updateSimpleBreakdownChart();
+            updateSimpleVolumeChart();
             updateRecommendation(metrics);
             
             state.isCalculating = false;
@@ -894,203 +932,123 @@
                 });
         }
         
-        function createLineChart(containerId, data, colors, labels, yAxisLabel) {
+        function createSimpleLineChart(containerId, datasets, colors, labels, yAxisTitle) {
             const container = document.getElementById(containerId);
-            if (!container || !data.length) return;
+            if (!container || !datasets.length) return;
             
             container.innerHTML = '';
             
-            // Create container div
-            const chartDiv = document.createElement('div');
-            chartDiv.style.position = 'relative';
-            chartDiv.style.width = '100%';
-            chartDiv.style.height = '100%';
-            chartDiv.style.padding = '10px';
+            // Get all values to determine range
+            const allValues = datasets.flat();
+            const xValues = allValues.map(d => d.x);
+            const yValues = allValues.map(d => d.y);
             
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('width', '100%');
-            svg.setAttribute('height', '100%');
-            svg.setAttribute('viewBox', '0 0 500 300');
-            svg.style.display = 'block';
-            
-            const margin = { top: 30, right: 40, bottom: 60, left: 60 };
-            const width = 500 - margin.left - margin.right;
-            const height = 300 - margin.top - margin.bottom;
-            
-            // Find data ranges
-            const allXValues = data.flat().map(d => d.x);
-            const allYValues = data.flat().map(d => d.y);
-            const xMin = Math.min(...allXValues);
-            const xMax = Math.max(...allXValues);
-            const yMin = Math.min(0, Math.min(...allYValues));
-            const yMax = Math.max(...allYValues);
+            const xMin = Math.min(...xValues);
+            const xMax = Math.max(...xValues);
+            const yMin = Math.min(0, Math.min(...yValues));
+            const yMax = Math.max(...yValues);
             const yRange = yMax - yMin || 1;
             
-            // Scaling functions
-            const xScale = (x) => margin.left + ((x - xMin) / (xMax - xMin)) * width;
-            const yScale = (y) => margin.top + height - ((y - yMin) / yRange) * height;
+            // Create chart structure
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'simple-line-chart';
             
-            // Create background
-            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            bg.setAttribute('x', '0');
-            bg.setAttribute('y', '0');
-            bg.setAttribute('width', '500');
-            bg.setAttribute('height', '300');
-            bg.setAttribute('fill', '#fafafa');
-            svg.appendChild(bg);
-            
-            // Create grid lines
-            for (let i = 0; i <= 5; i++) {
-                const y = margin.top + (i * height / 5);
-                const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                gridLine.setAttribute('x1', margin.left);
-                gridLine.setAttribute('x2', margin.left + width);
-                gridLine.setAttribute('y1', y);
-                gridLine.setAttribute('y2', y);
-                gridLine.setAttribute('stroke', '#e0e0e0');
-                gridLine.setAttribute('stroke-width', '0.5');
-                svg.appendChild(gridLine);
-                
-                // Y-axis labels
-                if (i < 5) {
-                    const value = yMax - (i * yRange / 5);
-                    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    label.setAttribute('x', margin.left - 10);
-                    label.setAttribute('y', y + 4);
-                    label.setAttribute('text-anchor', 'end');
-                    label.setAttribute('font-size', '11');
-                    label.setAttribute('fill', '#666');
-                    label.textContent = value.toFixed(1);
-                    svg.appendChild(label);
-                }
+            // Y-axis labels
+            const yLabelsDiv = document.createElement('div');
+            yLabelsDiv.className = 'y-axis-labels';
+            for (let i = 0; i <= 4; i++) {
+                const label = document.createElement('div');
+                label.className = 'y-label';
+                const value = yMin + (yRange * i / 4);
+                label.textContent = value.toFixed(1);
+                yLabelsDiv.appendChild(label);
             }
+            chartDiv.appendChild(yLabelsDiv);
             
-            // Vertical grid lines
-            data[0].forEach((point, i) => {
-                if (i % 2 === 0) {
-                    const x = xScale(point.x);
-                    const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    gridLine.setAttribute('x1', x);
-                    gridLine.setAttribute('x2', x);
-                    gridLine.setAttribute('y1', margin.top);
-                    gridLine.setAttribute('y2', margin.top + height);
-                    gridLine.setAttribute('stroke', '#f0f0f0');
-                    gridLine.setAttribute('stroke-width', '0.5');
-                    svg.appendChild(gridLine);
+            // Chart canvas
+            const canvas = document.createElement('div');
+            canvas.className = 'chart-canvas';
+            
+            // Draw each dataset
+            datasets.forEach((data, dataIndex) => {
+                const color = colors[dataIndex];
+                
+                // Draw points and lines
+                for (let i = 0; i < data.length; i++) {
+                    const point = data[i];
+                    const x = ((point.x - xMin) / (xMax - xMin)) * 100;
+                    const y = 100 - (((point.y - yMin) / yRange) * 100);
+                    
+                    // Create point
+                    const pointEl = document.createElement('div');
+                    pointEl.className = 'chart-point';
+                    pointEl.style.left = x + '%';
+                    pointEl.style.top = y + '%';
+                    pointEl.style.backgroundColor = color;
+                    pointEl.style.transform = 'translate(-50%, -50%)';
+                    
+                    // Add tooltip
+                    pointEl.addEventListener('mouseenter', function(e) {
+                        showSimpleTooltip(e, `€${point.x}: ${formatNumber(point.y, 1)} ${labels[dataIndex] || ''}`);
+                    });
+                    pointEl.addEventListener('mouseleave', hideSimpleTooltip);
+                    
+                    canvas.appendChild(pointEl);
+                    
+                    // Draw line to next point
+                    if (i < data.length - 1) {
+                        const nextPoint = data[i + 1];
+                        const nextX = ((nextPoint.x - xMin) / (xMax - xMin)) * 100;
+                        const nextY = 100 - (((nextPoint.y - yMin) / yRange) * 100);
+                        
+                        const deltaX = nextX - x;
+                        const deltaY = nextY - y;
+                        const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                        const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+                        
+                        const line = document.createElement('div');
+                        line.className = 'chart-line-path';
+                        line.style.left = x + '%';
+                        line.style.top = y + '%';
+                        line.style.width = length + '%';
+                        line.style.backgroundColor = color;
+                        line.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+                        line.style.zIndex = '5';
+                        
+                        canvas.appendChild(line);
+                    }
                 }
             });
             
-            // Create axes
-            const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            xAxis.setAttribute('x1', margin.left);
-            xAxis.setAttribute('x2', margin.left + width);
-            xAxis.setAttribute('y1', margin.top + height);
-            xAxis.setAttribute('y2', margin.top + height);
-            xAxis.setAttribute('stroke', '#333');
-            xAxis.setAttribute('stroke-width', '2');
-            svg.appendChild(xAxis);
-            
-            const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            yAxis.setAttribute('x1', margin.left);
-            yAxis.setAttribute('x2', margin.left);
-            yAxis.setAttribute('y1', margin.top);
-            yAxis.setAttribute('y2', margin.top + height);
-            yAxis.setAttribute('stroke', '#333');
-            yAxis.setAttribute('stroke-width', '2');
-            svg.appendChild(yAxis);
+            chartDiv.appendChild(canvas);
             
             // X-axis labels
-            data[0].forEach((point, i) => {
-                if (i % 2 === 0) {
-                    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                    label.setAttribute('x', xScale(point.x));
-                    label.setAttribute('y', margin.top + height + 20);
-                    label.setAttribute('text-anchor', 'middle');
-                    label.setAttribute('font-size', '11');
-                    label.setAttribute('fill', '#666');
+            const xLabelsDiv = document.createElement('div');
+            xLabelsDiv.className = 'x-axis-labels';
+            const step = Math.ceil(datasets[0].length / 6); // Show ~6 labels
+            datasets[0].forEach((point, i) => {
+                if (i % step === 0 || i === datasets[0].length - 1) {
+                    const label = document.createElement('div');
+                    label.className = 'x-label';
                     label.textContent = '€' + point.x;
-                    svg.appendChild(label);
+                    xLabelsDiv.appendChild(label);
+                } else {
+                    const label = document.createElement('div');
+                    label.className = 'x-label';
+                    label.textContent = '';
+                    xLabelsDiv.appendChild(label);
                 }
             });
+            chartDiv.appendChild(xLabelsDiv);
             
-            // X-axis title
-            const xTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            xTitle.setAttribute('x', margin.left + width / 2);
-            xTitle.setAttribute('y', margin.top + height + 45);
-            xTitle.setAttribute('text-anchor', 'middle');
-            xTitle.setAttribute('font-size', '12');
-            xTitle.setAttribute('fill', '#333');
-            xTitle.setAttribute('font-weight', 'bold');
-            xTitle.textContent = 'B2B Price (€)';
-            svg.appendChild(xTitle);
-            
-            // Y-axis title
-            const yTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            yTitle.setAttribute('x', 15);
-            yTitle.setAttribute('y', margin.top + height / 2);
-            yTitle.setAttribute('text-anchor', 'middle');
-            yTitle.setAttribute('font-size', '12');
-            yTitle.setAttribute('fill', '#333');
-            yTitle.setAttribute('font-weight', 'bold');
-            yTitle.setAttribute('transform', `rotate(-90, 15, ${margin.top + height / 2})`);
-            yTitle.textContent = yAxisLabel || 'Value';
-            svg.appendChild(yTitle);
-            
-            // Draw lines and dots for each dataset
-            data.forEach((dataset, index) => {
-                if (!dataset.length) return;
-                
-                // Create path for line
-                const pathData = dataset.map((point, i) => {
-                    const x = xScale(point.x);
-                    const y = yScale(point.y);
-                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                }).join(' ');
-                
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', pathData);
-                path.setAttribute('fill', 'none');
-                path.setAttribute('stroke', colors[index]);
-                path.setAttribute('stroke-width', '3');
-                path.setAttribute('stroke-linecap', 'round');
-                path.setAttribute('stroke-linejoin', 'round');
-                svg.appendChild(path);
-                
-                // Add dots
-                dataset.forEach(point => {
-                    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    dot.setAttribute('cx', xScale(point.x));
-                    dot.setAttribute('cy', yScale(point.y));
-                    dot.setAttribute('r', '4');
-                    dot.setAttribute('fill', colors[index]);
-                    dot.setAttribute('stroke', 'white');
-                    dot.setAttribute('stroke-width', '2');
-                    dot.style.cursor = 'pointer';
-                    
-                    // Add hover effects
-                    dot.addEventListener('mouseenter', function() {
-                        this.setAttribute('r', '6');
-                        showTooltip(event, `€${point.x}: ${formatNumber(point.y, 1)}${labels[index] ? ' ' + labels[index] : ''}`);
-                    });
-                    
-                    dot.addEventListener('mouseleave', function() {
-                        this.setAttribute('r', '4');
-                        hideTooltip();
-                    });
-                    
-                    svg.appendChild(dot);
-                });
-            });
-            
-            chartDiv.appendChild(svg);
             container.appendChild(chartDiv);
         }
         
-        function showTooltip(event, text) {
-            let tooltip = document.querySelector('.chart-tooltip');
+        function showSimpleTooltip(event, text) {
+            let tooltip = document.querySelector('.chart-tooltip-simple');
             if (!tooltip) {
                 tooltip = document.createElement('div');
-                tooltip.className = 'chart-tooltip';
+                tooltip.className = 'chart-tooltip-simple';
                 document.body.appendChild(tooltip);
             }
             
@@ -1100,14 +1058,14 @@
             tooltip.style.top = (event.pageY - 30) + 'px';
         }
         
-        function hideTooltip() {
-            const tooltip = document.querySelector('.chart-tooltip');
+        function hideSimpleTooltip() {
+            const tooltip = document.querySelector('.chart-tooltip-simple');
             if (tooltip) {
                 tooltip.style.opacity = '0';
             }
         }
         
-        function updateBreakdownChart() {
+        function updateSimpleBreakdownChart() {
             const productionData = [];
             const equityData = [];
             
@@ -1126,10 +1084,10 @@
                 }
             }
             
-            createLineChart('breakdownChart', [productionData, equityData], ['#3498db', '#2ecc71'], ['M€', 'M€'], 'Revenue (M€)');
+            createSimpleLineChart('breakdownChart', [productionData, equityData], ['#3498db', '#2ecc71'], ['M€', 'M€'], 'Revenue (M€)');
         }
         
-        function updateVolumeChart() {
+        function updateSimpleVolumeChart() {
             const volumeData = [];
             const valuationData = [];
             
@@ -1148,7 +1106,7 @@
                 }
             }
             
-            createLineChart('volumeChart', [volumeData, valuationData], ['#9b59b6', '#f39c12'], ['k units', 'M€'], 'Volume (k) / Valuation (M€)');
+            createSimpleLineChart('volumeChart', [volumeData, valuationData], ['#9b59b6', '#f39c12'], ['k units', 'M€'], 'Volume/Valuation');
                 
                 bar.appendChild(label);
                 bar.appendChild(valueLabel);
