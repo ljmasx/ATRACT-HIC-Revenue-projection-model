@@ -1,1 +1,0 @@
-# ATRACT-HIC-Revenue-projection-model
